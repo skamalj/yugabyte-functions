@@ -1,8 +1,16 @@
 const yargs = require('yargs');
 var faker = require('faker');
+const {GoogleAuth} = require('google-auth-library');
+
+var functionURL = 'https://us-central1-gcdeveloper.cloudfunctions.net/mytestfunction';
 
 var cities_and_sensors = [];
 var sensor_data = [];
+var response_recieved = 0;
+var errorred_requests = 0;
+
+const auth = new GoogleAuth();
+var client;
 
 //Define and Accept arguments;
 const argv = yargs
@@ -39,6 +47,9 @@ function generateCitiesAndSensors(num_of_cities, start_sensor_id) {
     for (i=0; i < num_of_cities; i++) 
         cities_and_sensors[i] = {'city': faker.address.city(), 'sensor': start_sensor_id + i};
     console.timeEnd('GENERATE_REF_CITIES_AND_SENSORS_DURATION')    
+    return new Promise((resolve, reject) => {
+        resolve();
+    });
 }
 
 //Interval in millisecond to generate at required rps.
@@ -50,21 +61,50 @@ const duration = argv.duration*1000;
 function generateSiesmicData() {
     var time_now = Date.now();
     var data  = cities_and_sensors.map(city => {
-        return {'city':city.city,'sensor':city.sensor,'time_created': time_now, 'value': Math.random() * 7.0 + 1.0} ;
-        });     
+        var message =  {'city':city.city,'sensor':city.sensor,'time_created': time_now, 'value': Math.random() * 7.0 + 1.0} ;
+        client.request({url: functionURL, params:{message: JSON.stringify(message)}})
+            .then((res) => {
+                response_recieved++;
+            })
+            .catch((err) => {
+                errorred_requests++;
+            })
+        return message;
+    });     
     sensor_data = data.concat(sensor_data); 
 }
 
 
 //Generate reference city and sensor data
-generateCitiesAndSensors(argv.cities,argv.sensor_index);
-console.log("Starting data generation")
-console.time('START_GEN_DURATION')
-var genData = setInterval(generateSiesmicData,rate_interval);
+var genDataInterval;
+    generateCitiesAndSensors(argv.cities,argv.sensor_index)
+    .then(() => {
+        auth.getIdTokenClient(functionURL).then((cl) => {
+            client = cl;
+            return new Promise((resolve, reject) => { resolve(); });
+        })
+    })
+    .then(() => {
+        genDataInterval = setInterval(generateSiesmicData,rate_interval);
 
-setInterval(() => {
-    clearInterval(genData);
-    console.timeEnd('START_GEN_DURATION')
-    console.log(`Total records generated: ${sensor_data.length}`)
-    return process.exit();
-}, duration);
+        setInterval(() => {
+            clearInterval(genDataInterval);
+            console.timeEnd('START_GEN_DURATION')
+            console.log(`Total records generated: ${sensor_data.length} Successful delivered: ${response_recieved} Errored records: ${errorred_requests}`)
+        }, duration);
+        return new Promise((resolve,reject) => { resolve(); });
+    })
+    .then(() => { setInterval(checkStatus, 3000) });
+    
+
+    function checkStatus() {
+        if (sensor_data.length != 0 && sensor_data.length == response_recieved + errorred_requests) {
+            console.log(`Total records generated: ${sensor_data.length} Successful delivered: ${response_recieved} Errored records: ${errorred_requests}`)
+            process.exit();
+        } else {
+            console.log(`Total records generated: ${sensor_data.length} Successful delivered: ${response_recieved} Errored records: ${errorred_requests}`)
+        }
+    }
+    console.log("Starting data generation");
+    console.time('START_GEN_DURATION');  
+

@@ -9,7 +9,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async": "^3.2.0",
+    "axios": "^0.19.2",
     "faker": "^4.1.0",
+    "google-auth-library": "^6.0.0",
+    "pg": "^8.2.1",
     "yargs": "^15.3.1"
   }
 }
