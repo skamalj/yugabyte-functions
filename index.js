@@ -81,17 +81,14 @@ var genDataInterval;
     .then(() => {
         auth.getIdTokenClient(functionURL).then((cl) => {
             client = cl;
+            genDataInterval = setInterval(generateSiesmicData,rate_interval);
+
+            setInterval(() => {
+                clearInterval(genDataInterval);
+            }, duration);
+
             return new Promise((resolve, reject) => { resolve(); });
         })
-    })
-    .then(() => {
-        genDataInterval = setInterval(generateSiesmicData,rate_interval);
-
-        setInterval(() => {
-            clearInterval(genDataInterval);
-            console.log(`Total records generated: ${sensor_data.length} Successful delivered: ${response_recieved} Errored records: ${errorred_requests}`)
-        }, duration);
-        return new Promise((resolve,reject) => { resolve(); });
     })
     .then(() => { setInterval(checkStatus, 10000) });
     
