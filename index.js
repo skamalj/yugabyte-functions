@@ -2,7 +2,7 @@ const yargs = require('yargs');
 var faker = require('faker');
 const {GoogleAuth} = require('google-auth-library');
 
-var functionURL = 'https://us-central1-gcdeveloper.cloudfunctions.net/mytestfunction';
+var functionURL = 'https://asia-east2-wipro-gcp-parsnet-poc.cloudfunctions.net/insert-to-yugabyte-asia';
 
 var cities_and_sensors = [];
 var sensor_data = [];
@@ -89,12 +89,11 @@ var genDataInterval;
 
         setInterval(() => {
             clearInterval(genDataInterval);
-            console.timeEnd('START_GEN_DURATION')
             console.log(`Total records generated: ${sensor_data.length} Successful delivered: ${response_recieved} Errored records: ${errorred_requests}`)
         }, duration);
         return new Promise((resolve,reject) => { resolve(); });
     })
-    .then(() => { setInterval(checkStatus, 3000) });
+    .then(() => { setInterval(checkStatus, 10000) });
     
 
     function checkStatus() {
@@ -105,6 +104,5 @@ var genDataInterval;
             console.log(`Total records generated: ${sensor_data.length} Successful delivered: ${response_recieved} Errored records: ${errorred_requests}`)
         }
     }
-    console.log("Starting data generation");
-    console.time('START_GEN_DURATION');  
+    console.log("Starting data generation"); 
 
